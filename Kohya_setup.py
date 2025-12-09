@@ -451,7 +451,7 @@ SRC.mkdir(parents=True, exist_ok=True)
 output = widgets.Output()
 loading = widgets.Output()
 
-kohya, civitai_key, hf_read_token = getArgs()
+civitai_key, hf_read_token = getArgs()
 if civitai_key is None: sys.exit()
 
 display(output, loading)

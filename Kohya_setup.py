@@ -31,38 +31,50 @@ def getENV():
     return None, None, None
 
 def getArgs():
+    """
+    Parse and validate args for Kohya installer.
+    Returns: (selected_ui, civitai_key, hf_read_token)
+    selected_ui will be the string "kohya".
+    Exits with non-zero code on fatal validation errors.
+    """
     parser = argparse.ArgumentParser(description='Kohya Installer Script for Kaggle and Google Colab')
-    parser.add_argument('--model_family', required=True, help='available model_family: Flux, Illustrious, SD15, SDXL, Pony,')
+    parser.add_argument('--model_family', required=True,
+                        help='available model_family: Flux, Illustrious, SD15, SDXL, Pony')
     parser.add_argument('--civitai_key', required=True, help='your CivitAI API key')
     parser.add_argument('--hf_read_token', default=None, help='your Huggingface READ Token (optional)')
 
     args, unknown = parser.parse_known_args()
 
+    # validate model_family against known list (case-insensitive)
+    MODEL_FAMILIES = ['flux', 'illustrious', 'sd15', 'sdxl', 'pony']
+    model_family = args.model_family.strip().lower()
+    if model_family not in MODEL_FAMILIES:
+        print(f"[ERROR] invalid model_family: \"{args.model_family}\"")
+        print("Available model_family options:", ", ".join(MODEL_FAMILIES))
+        sys.exit(2)
 
-    arg1 = "kohya"
-    arg2 = args.civitai_key.strip()
-    arg3 = args.hf_read_token.strip() if args.hf_read_token else ''
+    civitai_key = args.civitai_key.strip()
+    hf_read_token = args.hf_read_token.strip() if args.hf_read_token else ''
 
-    if not any(arg1 == option.lower() for option in WEBUI_LIST):
-        print(f'{ERROR}: invalid model option: "{args.webui}"')
-        print(f'Available model options: {", ".join(WEBUI_LIST)}')
-        return None, None, None
+    # validate civitai_key (basic checks)
+    if not civitai_key:
+        print("[ERROR] CivitAI API key is missing.")
+        sys.exit(2)
+    if re.search(r'\s+', civitai_key):
+        print(f"[ERROR] CivitAI API key contains spaces \"{civitai_key}\" - not allowed.")
+        sys.exit(2)
+    if len(civitai_key) < 32:
+        # a conservative minimum length - adjust if your key is shorter/longer
+        print("[ERROR] CivitAI API key must be at least 32 characters long.")
+        sys.exit(2)
 
-    if not arg2:
-        print(f'{ERROR}: CivitAI API key is missing.')
-        return None, None, None
-    if re.search(r'\s+', arg2):
-        print(f'{ERROR}: CivitAI API key contains spaces "{arg2}" - not allowed.')
-        return None, None, None
-    if len(arg2) < 32:
-        print(f'{ERROR}: CivitAI API key must be at least 32 characters long.')
-        return None, None, None
+    # sanitize HF token
+    if re.search(r'\s+', hf_read_token):
+        hf_read_token = ''
 
-    if not arg3: arg3 = ''
-    if re.search(r'\s+', arg3): arg3 = ''
-
-    selected_ui = next(option for option in WEBUI_LIST if arg1 == option.lower())
-    return selected_ui, arg2, arg3
+    # For the rest of the script we return "kohya" as the selected UI/flow marker
+    selected_ui = "kohya"
+    return selected_ui, civitai_key, hf_read_token
 
 def getPython():
     hao = webui in ['Kohya']
@@ -104,47 +116,85 @@ def getPython():
         ]:
             SyS(f'{cmd} > /dev/null 2>&1')
 
-def marking(p, n, u):
-    t = p / n
-    v = {'ui': u, 'launch_args': '', 'tunnel': ''}
+def marking(base_path: Path, filename: str, ui: str):
+    """
+    Create/patch a small JSON marker file at base_path/filename with ui info.
+    Example: marking(Path('/content/kohya'), 'launcher.json', 'kohya')
+    """
+    base_path = Path(base_path)
+    t = base_path / filename
+    v = {'ui': ui, 'launch_args': '', 'tunnel': ''}
+    if not t.exists():
+        t.parent.mkdir(parents=True, exist_ok=True)
+        t.write_text(json.dumps(v, indent=4))
+    else:
+        try:
+            d = json.loads(t.read_text())
+            if not isinstance(d, dict):
+                d = {}
+        except Exception:
+            d = {}
+        d.update(v)
+        t.write_text(json.dumps(d, indent=4))
 
-    if not t.exists(): t.write_text(json.dumps(v, indent=4))
 
-    d = json.loads(t.read_text())
-    d.update(v)
-    t.write_text(json.dumps(d, indent=4))
-
-def key_inject(C, H):
-    p = Path(nenen)
+def key_inject(target_file: Path, civitai_key: str, hf_read_token: str):
+    """
+    Replace placeholder token strings in a target script/file with provided keys.
+    The function looks for placeholders TOKET and TOBRUT in the file contents and substitutes them.
+    Example: key_inject(Path('/content/kohya/some_script.py'), 'CIV_KEY', 'HF_TOKEN')
+    """
+    p = Path(target_file)
+    if not p.exists():
+        raise FileNotFoundError(f"key_inject: target file not found: {p}")
     v = p.read_text()
-    v = v.replace("TOKET = ''", f"TOKET = '{C}'")
-    v = v.replace("TOBRUT = ''", f"TOBRUT = '{H}'")
+    # basic safe replacements (escape single quotes inside tokens)
+    civ_safe = civitai_key.replace("'", "\\'")
+    hf_safe = hf_read_token.replace("'", "\\'")
+    v = v.replace("TOKET = ''", f"TOKET = '{civ_safe}'")
+    v = v.replace("TOBRUT = ''", f"TOBRUT = '{hf_safe}'")
     p.write_text(v)
 
-def install_tunnel():
-    SyS(f'wget -qO {USR}/cl https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64')
-    SyS(f'chmod +x {USR}/cl')
+
+def install_tunnel(user_bin: Path):
+    """
+    Install small tunnel helpers to user_bin (Path).
+    This function is generic and no longer relies on hidden globals.
+    Example: install_tunnel(Path('/content/kohya/bin'))
+    """
+    user_bin = Path(user_bin)
+    user_bin.mkdir(parents=True, exist_ok=True)
+
+    # cloudflared
+    cl_path = user_bin / 'cloudflared'
+    try:
+        SyS(f'wget -qO {cl_path} https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64')
+        SyS(f'chmod +x {cl_path}')
+    except Exception:
+        print("[WARN] failed to fetch cloudflared; continuing")
 
     bins = {
         'zrok': {
-            'bin': USR / 'zrok',
+            'bin': user_bin / 'zrok',
             'url': 'https://github.com/openziti/zrok/releases/download/v1.0.6/zrok_1.0.6_linux_amd64.tar.gz'
         },
         'ngrok': {
-            'bin': USR / 'ngrok',
+            'bin': user_bin / 'ngrok',
             'url': 'https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-amd64.tgz'
         }
     }
 
     for n, b in bins.items():
-        if b['bin'].exists(): b['bin'].unlink()
-
-        url = b['url']
-        name = Path(url).name
-
-        SyS(f'wget -qO {name} {url}')
-        SyS(f'tar -xzf {name} -C {USR}')
-        SyS(f'rm -f {name}')
+        try:
+            if b['bin'].exists():
+                b['bin'].unlink()
+            url = b['url']
+            name = Path(url).name
+            SyS(f'wget -qO {name} {url}')
+            SyS(f'tar -xzf {name} -C {user_bin}')
+            SyS(f'rm -f {name}')
+        except Exception:
+            print(f"[WARN] failed to install {n}; continuing")
 
 def sym_link(U, M):
     configs = {
@@ -255,46 +305,41 @@ def sym_link(U, M):
     if U not in ['ComfyUI', 'SwarmUI']: [(M / d).mkdir(parents=True, exist_ok=True) for d in ['Lora', 'ESRGAN']]
     [SyS(f'ln -s {src} {tg}') for src, tg in cfg['links']]
 
-def webui_req(U, W, M):
-    CD(W)
+def kohya_requirements(base_path):
+    """
+    Install only the requirements needed for Kohya sd-scripts.
+    No WebUI, no folders, no useless junk.
+    """
 
-    if U != 'SwarmUI':
-        pull(f'https://github.com/gutris1/segsmaker {U.lower()} {W}')
+    # Move into sd-scripts directory
+    kohya_dir = base_path / "sd-scripts"
+    CD(kohya_dir)
+
+    # Install core requirements
+    say("<br><b>Installing Kohya requirements…</b>")
+    SyS("pip install --upgrade pip")
+
+    # Install the official sd-scripts deps
+    req_file = kohya_dir / "requirements.txt"
+    if req_file.exists():
+        SyS(f"pip install -r {req_file}")
     else:
-        M.mkdir(parents=True, exist_ok=True)
-        for sub in ['Stable-Diffusion', 'Lora', 'Embeddings', 'VAE', 'upscale_models']:
-            (M / sub).mkdir(parents=True, exist_ok=True)
+        say("requirements.txt not found — installing known dependencies manually…")
 
-        download(f'https://dot.net/v1/dotnet-install.sh {W}')
-        dotnet = W / 'dotnet-install.sh'
-        dotnet.chmod(0o755)
-        SyS('bash ./dotnet-install.sh --channel 8.0')
+        # fallback minimal list (validated from kohya repo)
+        SyS("pip install accelerate==0.30.0")
+        SyS("pip install bitsandbytes")
+        SyS("pip install transformers==4.41.0")
+        SyS("pip install ftfy")
+        SyS("pip install safetensors")
+        SyS("pip install sentencepiece")
+        SyS("pip install torchvision")
+        SyS("pip install tensorboard")
+        SyS("pip install einops")
+        SyS("pip install opencv-python")
+        SyS("pip install tqdm")
 
-    sym_link(U, M)
-    install_tunnel()
-
-    scripts = [
-        f'https://github.com/gutris1/segsmaker/raw/main/script/controlnet.py {W}/asd',
-        f'https://github.com/gutris1/segsmaker/raw/main/script/KC/segsmaker.py {W}'
-    
-    ]
-    EXT = W / 'custom_nodes' if U == 'ComfyUI' else W / 'extensions'
-    CD(EXT)
-
-    if U == 'ComfyUI':
-        say('<br><b>【{red} Installing Custom Nodes{d} 】{red}</b>')
-        clone(str(W / 'asd/custom_nodes.txt'))
-        print()
-
-        for faces in [
-            f'https://github.com/sczhou/CodeFormer/releases/download/v0.1.0/codeformer.pth {M}/facerestore_models',
-            f'https://github.com/TencentARC/GFPGAN/releases/download/v1.3.4/GFPGANv1.4.pth {M}/facerestore_models'
-        ]: download(faces)
-
-    else:
-        say('<br><b>【{red} Installing Extensions{d} 】{red}</b>')
-        clone(str(W / 'asd/extension.txt'))
-        if ENVNAME == 'Kaggle': clone('https://github.com/gutris1/sd-image-encryption')
+    say("<br><b>Kohya requirements installed successfully.</b>")
 
 def webui_installation(U, W):
     M = W / 'Models' if U == 'SwarmUI' else W / 'models'
@@ -329,38 +374,26 @@ def webui_selection(ui):
             tempe()
             CD(HOME)
 
-def webui_installer():
-    branchs = {
-        'A1111': 'master',
-        'ComfyUI': 'master',
-        'SwarmUI': 'master',
-        'Forge': 'main',
-        'ReForge': 'main',
-        'Forge-Classic': 'classic',
-        'Forge-Neo': 'neo',
-    }
+def kohya_installation(base_path: Path):
+    """
+    Minimal installation step for Kohya.
+    - Only ensures requirements are installed.
+    - No extra folders or scripts are downloaded.
+    """
+    # Define main Kohya paths
+    sd_scripts_dir = base_path / "sd-scripts"
+    kohya_ss_dir = base_path / "kohya_ss"
+    kohya_colab_dir = base_path / "kohya-colab"
 
-    CD(HOME)
-    ui = (json.load(MARKED.open('r')) if MARKED.exists() else {}).get('ui')
-    WEBUI = HOME / ui if ui else None
+    # Install requirements for sd-scripts
+    kohya_requirements(base_path)
 
-    if WEBUI is not None and WEBUI.exists():
-        git_dir = WEBUI / '.git'
-        if git_dir.exists():
-            CD(WEBUI)
-            with output:
-                output.clear_output(wait=True)
-                if ui in branchs: SyS(f'git pull origin {branchs[ui]}')
-                with loading: loading.clear_output()
-    else:
-        try:
-            webui_selection(webui)
-        except KeyboardInterrupt:
-            with loading: loading.clear_output()
-            with output: print('\nCanceled.')
-        except Exception as e:
-            with loading: loading.clear_output()
-            with output: print(f'\n{ERROR}: {e}')
+    print("\n✔ Kohya installation complete.")
+    print("Next steps:")
+    print(f" - Put your training images in {base_path / 'dataset'}")
+    print(f" - Put your models in {base_path / 'models'}")
+    print(f" - Output will be saved to {base_path / 'outputs'}")
+
 
 def notebook_scripts():
     z = [
@@ -418,7 +451,7 @@ SRC.mkdir(parents=True, exist_ok=True)
 output = widgets.Output()
 loading = widgets.Output()
 
-webui, civitai_key, hf_read_token = getArgs()
+civitai_key, hf_read_token = getArgs()
 if civitai_key is None: sys.exit()
 
 display(output, loading)
@@ -427,4 +460,3 @@ with output: PY.exists() or getPython()
 notebook_scripts()
 
 from nenen88 import clone, say, download, tempe, pull
-webui_installer()

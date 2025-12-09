@@ -74,7 +74,7 @@ def getArgs():
 
     # For the rest of the script we return "kohya" as the selected UI/flow marker
     selected_ui = "kohya"
-    return selected_ui, civitai_key, hf_read_token
+    return civitai_key, hf_read_token
 
 def getPython():
     hao = webui in ['Kohya']

@@ -74,7 +74,7 @@ def getArgs():
 
     # For the rest of the script we return "kohya" as the selected UI/flow marker
     selected_ui = "kohya"
-    return civitai_key, hf_read_token
+    return selected_ui, civitai_key, hf_read_token
 
 def getPython():
     hao = webui in ['Kohya']
@@ -451,7 +451,7 @@ SRC.mkdir(parents=True, exist_ok=True)
 output = widgets.Output()
 loading = widgets.Output()
 
-civitai_key, hf_read_token = getArgs()
+selected_ui, civitai_key, hf_read_token = getArgs()
 if civitai_key is None: sys.exit()
 
 display(output, loading)

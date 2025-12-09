@@ -38,6 +38,8 @@ def getArgs():
 
     args, unknown = parser.parse_known_args()
 
+
+    arg1 = "kohya"
     arg2 = args.civitai_key.strip()
     arg3 = args.hf_read_token.strip() if args.hf_read_token else ''
 

@@ -77,7 +77,7 @@ def getArgs():
     return selected_ui, civitai_key, hf_read_token
 
 def getPython():
-    hao = webui in ['Kohya']
+    hao = selected_ui in ['Kohya']
     v = '3.11' if hao else '3.10'
     BIN = str(PY / 'bin')
     PKG = str(PY / f'lib/python{v}/site-packages')
@@ -87,7 +87,7 @@ def getPython():
        
     }
 
-    url = tar.get(webui, 'https://huggingface.co/gutris1/webui/resolve/main/env/KC-Python310-Torch260-cu124.tar.lz4')
+    url = tar.get(selected_ui, 'https://huggingface.co/gutris1/webui/resolve/main/env/KC-Python310-Torch260-cu124.tar.lz4')
 
     fn = Path(url).name
 
@@ -411,7 +411,7 @@ def notebook_scripts():
     Path(KANDANG).write_text(text)
 
     key_inject(civitai_key, hf_read_token)
-    marking(SRC, MARKED, webui)
+    marking(SRC, MARKED, selected_ui)
     sys.path.append(str(STR))
 
     for scripts in [nenen, melon, KANDANG, MRK]: get_ipython().run_line_magic('run', str(scripts))

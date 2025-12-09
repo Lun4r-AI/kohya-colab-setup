@@ -410,7 +410,7 @@ def notebook_scripts():
     text = '\n'.join(f"{k} = '{v}'" for k, v in j.items())
     Path(KANDANG).write_text(text)
 
-   key_inject(nenen, civitai_key, hf_read_token)
+    key_inject(nenen, civitai_key, hf_read_token)
     marking(SRC, MARKED, selected_ui)
     sys.path.append(str(STR))
 

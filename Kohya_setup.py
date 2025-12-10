@@ -463,18 +463,4 @@ def pip_install_wrapper(cmd):
 # -------------------------------------------------------------
 
 from nenen88 import clone, say, download, tempe, pull
-
-# -------------------------------------------------------------
-# STEP 2: USE THE CUSTOM WRAPPER TO INSTALL MISSING DEPENDENCIES
-# We must install these *before* running kohya_installation(HOME), 
-# which calls kohya_requirements, which might fail if these are missing.
-print("\nInstalling missing dependencies: easygui and jax==0.4.30...")
-
-# Use the new pip wrapper function instead of the main SyS (shell command)
-pip_install_wrapper("install easygui")
-pip_install_wrapper("install jax==0.4.30")
-
-print("Missing dependencies installed.")
-# -------------------------------------------------------------
-
 kohya_installation(HOME)

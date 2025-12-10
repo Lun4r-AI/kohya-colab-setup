@@ -338,9 +338,7 @@ def kohya_requirements(base_path):
         SyS("pip install einops")
         SyS("pip install opencv-python")
         SyS("pip install tqdm")
-        SyS("pip install jax==0.4.30")
-        SyS("pip install easygui")
-
+      
     say("<br><b>Kohya requirements installed successfully.</b>")
 
 
@@ -444,3 +442,13 @@ else:
 
 from nenen88 import clone, say, download, tempe, pull
 kohya_installation(HOME)
+
+import subprocess
+import sys
+
+def SyS(cmd):
+    subprocess.check_call([sys.executable, "-m", "pip"] + cmd.split())
+
+# Install dependencies
+SyS("install jax==0.4.30")
+SyS("install easygui")

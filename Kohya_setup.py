@@ -9,6 +9,8 @@ import json
 import sys
 import os
 import re
+from nenen88 
+import clone
 
 SyS = get_ipython().system
 CD = os.chdir
@@ -341,6 +343,9 @@ def kohya_requirements(base_path):
 
     say("<br><b>Kohya requirements installed successfully.</b>")
 
+if not SD_SCRIPTS.exists():
+    # clone the Kohya repo
+    clone("https://github.com/kohya-ss/sd-scripts")  # adjust branch if needed
 
 def kohya_installation(base_path: Path):
     """

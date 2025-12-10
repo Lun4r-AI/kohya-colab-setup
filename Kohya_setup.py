@@ -15,7 +15,7 @@ CD = os.chdir
 iRON = os.environ
 
 REPO = {
-    'Kohya': 'https://github.com/kohya-ss/sd-scripts'
+    'Kohya': 'https://github.com/bmaltais/kohya_ss'
 }
 
 WEBUI_LIST = ['Kohya']

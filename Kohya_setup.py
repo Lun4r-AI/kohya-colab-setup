@@ -9,8 +9,6 @@ import json
 import sys
 import os
 import re
-from nenen88 
-import clone
 
 SyS = get_ipython().system
 CD = os.chdir
@@ -343,9 +341,6 @@ def kohya_requirements(base_path):
 
     say("<br><b>Kohya requirements installed successfully.</b>")
 
-if not SD_SCRIPTS.exists():
-    # clone the Kohya repo
-    clone("https://github.com/kohya-ss/sd-scripts")  # adjust branch if needed
 
 def kohya_installation(base_path: Path):
     """
@@ -431,6 +426,19 @@ display(output, loading)
 with loading: display(Image(url=IMG))
 with output: PY.exists() or getPython()
 notebook_scripts()
+
+from pathlib import Path
+import subprocess
+
+kohya_dir = HOME / "sd-scripts"
+
+if not kohya_dir.exists():
+    print("Cloning Kohya sd-scripts repository…")
+    subprocess.run(["git", "clone", REPO['Kohya'], str(kohya_dir)], check=True)
+else:
+    print("Kohya sd-scripts already cloned, pulling latest changes…")
+    subprocess.run(["git", "-C", str(kohya_dir), "pull"], check=True)
+
 
 from nenen88 import clone, say, download, tempe, pull
 kohya_installation(HOME)

@@ -440,25 +440,41 @@ else:
     subprocess.run(["git", "-C", str(kohya_dir), "pull"], check=True)
 
 
+from pathlib import Path
+import subprocess
+import sys # <-- Ensure sys is imported here if you move the definition
+
+kohya_dir = HOME / "sd-scripts"
+
+if not kohya_dir.exists():
+    print("Cloning Kohya sd-scripts repository…")
+    subprocess.run(["git", "clone", REPO['Kohya'], str(kohya_dir)], check=True)
+else:
+    print("Kohya sd-scripts already cloned, pulling latest changes…")
+    subprocess.run(["git", "-C", str(kohya_dir), "pull"], check=True)
+
+# -------------------------------------------------------------
+# STEP 1: DEFINE THE CUSTOM PIP WRAPPER FUNCTION
+# This function is necessary for running pip commands safely.
+# It MUST be defined before it is used.
+def pip_install_wrapper(cmd):
+    # This uses subprocess to call the python interpreter's pip module
+    subprocess.check_call([sys.executable, "-m", "pip"] + cmd.split())
+# -------------------------------------------------------------
+
 from nenen88 import clone, say, download, tempe, pull
 
-# --- Injecting missing dependencies installation here ---
-# This ensures easygui and jax are available before kohya_installation might use them
-# or before any script that runs after this point tries to import them.
+# -------------------------------------------------------------
+# STEP 2: USE THE CUSTOM WRAPPER TO INSTALL MISSING DEPENDENCIES
+# We must install these *before* running kohya_installation(HOME), 
+# which calls kohya_requirements, which might fail if these are missing.
 print("\nInstalling missing dependencies: easygui and jax==0.4.30...")
 
-# Use the existing SyS function for consistency
-# SyS uses subprocess.check_call([sys.executable, "-m", "pip"] + cmd.split())
-# which should be robust.
-SyS("install easygui")
-SyS("install jax==0.4.30")
+# Use the new pip wrapper function instead of the main SyS (shell command)
+pip_install_wrapper("install easygui")
+pip_install_wrapper("install jax==0.4.30")
 
 print("Missing dependencies installed.")
-# --- End of injection ---
+# -------------------------------------------------------------
 
 kohya_installation(HOME)
-
-
-# Install dependencies
-SyS("install jax==0.4.30")
-SyS("install easygui")

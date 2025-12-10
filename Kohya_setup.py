@@ -442,3 +442,6 @@ else:
 
 from nenen88 import clone, say, download, tempe, pull
 kohya_installation(HOME)
+
+!pip install --upgrade jax==0.4.30
+!pip install easygui

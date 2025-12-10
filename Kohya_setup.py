@@ -441,13 +441,23 @@ else:
 
 
 from nenen88 import clone, say, download, tempe, pull
+
+# --- Injecting missing dependencies installation here ---
+# This ensures easygui and jax are available before kohya_installation might use them
+# or before any script that runs after this point tries to import them.
+print("\nInstalling missing dependencies: easygui and jax==0.4.30...")
+
+# Use the existing SyS function for consistency
+# SyS uses subprocess.check_call([sys.executable, "-m", "pip"] + cmd.split())
+# which should be robust.
+SyS("install easygui")
+SyS("install jax==0.4.30")
+
+print("Missing dependencies installed.")
+# --- End of injection ---
+
 kohya_installation(HOME)
 
-import subprocess
-import sys
-
-def SyS(cmd):
-    subprocess.check_call([sys.executable, "-m", "pip"] + cmd.split())
 
 # Install dependencies
 SyS("install jax==0.4.30")

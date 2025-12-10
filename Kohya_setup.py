@@ -64,7 +64,7 @@ def getArgs():
         print(f"[ERROR] CivitAI API key contains spaces \"{civitai_key}\" - not allowed.")
         sys.exit(2)
     if len(civitai_key) < 32:
-        # a conservative minimum length - adjust if your key is shorter/longer
+       
         print("[ERROR] CivitAI API key must be at least 32 characters long.")
         sys.exit(2)
 
@@ -72,7 +72,7 @@ def getArgs():
     if re.search(r'\s+', hf_read_token):
         hf_read_token = ''
 
-    # For the rest of the script we return "kohya" as the selected UI/flow marker
+    
     selected_ui = "kohya"
     return selected_ui, civitai_key, hf_read_token
 
@@ -326,7 +326,7 @@ def kohya_requirements(base_path):
     else:
         say("requirements.txt not found — installing known dependencies manually…")
 
-        # fallback minimal list (validated from kohya repo)
+        # fallback minimal list 
         SyS("pip install accelerate==0.30.0")
         SyS("pip install bitsandbytes")
         SyS("pip install transformers==4.41.0")
@@ -442,7 +442,7 @@ else:
 
 from pathlib import Path
 import subprocess
-import sys # <-- Ensure sys is imported here if you move the definition
+import sys 
 
 kohya_dir = HOME / "sd-scripts"
 
@@ -453,10 +453,7 @@ else:
     print("Kohya sd-scripts already cloned, pulling latest changes…")
     subprocess.run(["git", "-C", str(kohya_dir), "pull"], check=True)
 
-# -------------------------------------------------------------
-# STEP 1: DEFINE THE CUSTOM PIP WRAPPER FUNCTION
-# This function is necessary for running pip commands safely.
-# It MUST be defined before it is used.
+# -----------------------------------------------------------
 def pip_install_wrapper(cmd):
     # This uses subprocess to call the python interpreter's pip module
     subprocess.check_call([sys.executable, "-m", "pip"] + cmd.split())

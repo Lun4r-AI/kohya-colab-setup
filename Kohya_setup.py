@@ -358,9 +358,9 @@ def kohya_installation(base_path: Path):
 
     print("\n✔ Kohya installation complete.")
     print("Next steps:")
-    print(f" - Put your training images in {base_path / 'dataset'}")
-    print(f" - Put your models in {base_path / 'models'}")
-    print(f" - Output will be saved to {base_path / 'outputs'}")
+    print(f" - Put your training images in {base_path / 'sd-scripts/dataset'}")
+    print(f" - Put your models in {base_path / 'sd-scripts/models'}")
+    print(f" - Output will be saved to {base_path / 'sd-scripts/outputs'}")
 
 
 def notebook_scripts():

@@ -341,38 +341,6 @@ def kohya_requirements(base_path):
 
     say("<br><b>Kohya requirements installed successfully.</b>")
 
-def webui_installation(U, W):
-    M = W / 'Models' if U == 'SwarmUI' else W / 'models'
-    E = M / 'Embeddings' if U == 'SwarmUI' else (M / 'embeddings' if U in ['Forge-Classic', 'Forge-Neo', 'ComfyUI'] else W / 'embeddings')
-    V = M / 'vae' if U == 'ComfyUI' else M / 'VAE'
-
-    webui_req(U, W, M)
-
-    extras = [
-        f'https://huggingface.co/gutris1/webui/resolve/main/misc/embeddingsXL.zip {W}',
-        f'https://huggingface.co/madebyollin/sdxl-vae-fp16-fix/resolve/main/sdxl.vae.safetensors {V} sdxl_vae.safetensors'
-    ]
-
-    for i in extras: download(i)
-    SyS(f"unzip -qo {W / 'embeddingsXL.zip'} -d {E} && rm {W / 'embeddingsXL.zip'}")
-
-    if U != 'SwarmUI': webui_extension(U, W, M)
-
-def webui_selection(ui):
-    with output:
-        output.clear_output(wait=True)
-
-        if ui in REPO: (WEBUI, repo) = (HOME / ui, REPO[ui])
-        say(f'<b>【{{red}} Installing {WEBUI.name}{{d}} 】{{red}}</b>')
-        clone(repo)
-
-        webui_installation(ui, WEBUI)
-
-        with loading:
-            loading.clear_output(wait=True)
-            say('<br><b>【{red} Done{d} 】{red}</b>')
-            tempe()
-            CD(HOME)
 
 def kohya_installation(base_path: Path):
     """
@@ -460,3 +428,4 @@ with output: PY.exists() or getPython()
 notebook_scripts()
 
 from nenen88 import clone, say, download, tempe, pull
+kohya_installation(HOME)

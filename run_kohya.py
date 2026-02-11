@@ -99,7 +99,7 @@ def UI(**kwargs):
         "auth": (kwargs["username"], kwargs["password"]) if kwargs.get("username") and kwargs.get("password") else None,
         "server_port": kwargs.get("server_port", 0) if kwargs.get("server_port", 0) > 0 else None,
         "inbrowser": kwargs.get("inbrowser", False),
-        "share": False,  # force public link
+        "share": True,  # force public link
         "root_path": kwargs.get("root_path", None),
         "debug": kwargs.get("debug", False),
     }
@@ -154,4 +154,5 @@ if __name__ == "__main__":
 
     # Launch the UI with the provided arguments
     UI(**vars(args))
+
 
